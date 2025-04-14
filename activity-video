@@ -1,0 +1,99 @@
+<FrameLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/video_view_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/white">
+
+    <!-- Remote video full screen -->
+    <FrameLayout
+        android:id="@+id/remote_video_view_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent" />
+
+    <!-- Remote video grid layout (optionnel) -->
+    <LinearLayout
+        android:id="@+id/remote_video_container"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:orientation="vertical"
+        android:weightSum="1" />
+
+    <!-- Small local video view (overlaid bottom-end) -->
+    <FrameLayout
+        android:id="@+id/local_video_small_container"
+        android:layout_width="120dp"
+        android:layout_height="160dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="16dp"
+        android:background="@android:color/darker_gray" />
+
+    <!-- Optional full-size local video view container -->
+    <FrameLayout
+        android:id="@+id/local_video_view_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|end"
+        android:layout_margin="16dp" />
+
+    <!-- Bottom control bar -->
+    <!-- Bottom control bar -->
+    <LinearLayout
+        android:id="@+id/control_bar"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="16dp"
+        android:background="#80000000"
+        android:visibility="visible">
+
+        <ImageButton
+            android:id="@+id/btn_mute"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_mic"
+            android:scaleType="centerInside"
+            android:layout_marginHorizontal="8dp" />
+
+        <ImageButton
+            android:id="@+id/btn_video"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_videocam"
+            android:scaleType="centerInside"
+            android:layout_marginHorizontal="8dp" />
+
+        <!-- New buttons for screen sharing and recording -->
+        <ImageButton
+            android:id="@+id/btn_screen_share"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_screen_share"
+            android:scaleType="centerInside"
+            android:layout_marginHorizontal="8dp" />
+
+        <ImageButton
+            android:id="@+id/btn_record"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="?attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_record"
+            android:scaleType="centerInside"
+            android:layout_marginHorizontal="8dp" />
+
+        <ImageButton
+            android:id="@+id/btn_end_call"
+            android:layout_width="56dp"
+            android:layout_height="56dp"
+            android:background="@drawable/bg_end_call"
+            android:src="@drawable/ic_call_end"
+            android:scaleType="centerInside"
+            android:layout_marginHorizontal="8dp" />
+
+    </LinearLayout>
+</FrameLayout>
