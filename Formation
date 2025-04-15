@@ -1,0 +1,123 @@
+package com.example.pfe;
+
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import java.util.Date;
+
+public class Formation {
+    private String id;  // ID de la formation
+    private String nom;  // Nom de la formation
+    private String description;  // Description de la formation
+    private int duree;  // Durée de la formation en semaines
+    private double prix;  // Prix de la formation
+    private String dateDebut;  // Date de début de la formation (format: "dd/MM/yyyy")
+    private String dateFin;  // Date de fin de la formation (format: "dd/MM/yyyy")
+
+    // Constructeur par défaut (nécessaire pour Firebase)
+    public Formation() {
+    }
+
+    // Constructeur complet
+    public Formation(String id, String nom, String description, int duree,
+                     double prix, String dateDebut, String dateFin) {
+        this.id = id;
+        this.nom = nom;
+        this.description = description;
+        this.duree = duree;
+        this.prix = prix;
+        this.dateDebut = dateDebut;
+        this.dateFin = dateFin;
+    }
+
+    // Méthode pour enregistrer une formation dans Firebase
+    public void saveToFirebase() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference ref = database.getReference("formations");
+
+        ref.child(this.id).setValue(this)
+                .addOnSuccessListener(aVoid -> {
+                    System.out.println("Formation enregistrée avec succès !");
+                })
+                .addOnFailureListener(e -> {
+                    System.err.println("Erreur lors de l'enregistrement : " + e.getMessage());
+                });
+    }
+
+    // Méthode pour récupérer une formation par ID
+    public static void getById(String formationId, final FirebaseCallback callback) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference ref = database.getReference("formations").child(formationId);
+
+        ref.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                Formation formation = task.getResult().getValue(Formation.class);
+                callback.onCallback(formation);
+            } else {
+                System.err.println("Erreur de récupération: " + task.getException().getMessage());
+                callback.onCallback(null);
+            }
+        });
+    }
+
+    // Interface de callback
+    public interface FirebaseCallback {
+        void onCallback(Formation formation);
+    }
+
+    // Getters et setters
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public void setDescription(String description) {
+        this.description = description;
+    }
+
+    public int getDuree() {
+        return duree;
+    }
+
+    public void setDuree(int duree) {
+        this.duree = duree;
+    }
+
+    public double getPrix() {
+        return prix;
+    }
+
+    public void setPrix(double prix) {
+        this.prix = prix;
+    }
+
+    public String getDateDebut() {
+        return dateDebut;
+    }
+
+    public void setDateDebut(String dateDebut) {
+        this.dateDebut = dateDebut;
+    }
+
+    public String getDateFin() {
+        return dateFin;
+    }
+
+    public void setDateFin(String dateFin) {
+        this.dateFin = dateFin;
+    }
+}
