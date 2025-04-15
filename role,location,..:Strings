@@ -1,0 +1,16 @@
+ <string-array name="niveaux_array">
+        <item>Bac</item>
+        <item>Sans Bac</item>
+    </string-array>
+ <string-array name="localisations_array">
+        <item>Tunis</item>
+        <item>Sfax</item>
+        <item>Sousse</item>
+        <item>Autre</item>
+    </string-array>
+ <string-array name="localisations_array">
+        <item>Tunis</item>
+        <item>Sfax</item>
+        <item>Sousse</item>
+        <item>Autre</item>
+    </string-array>
