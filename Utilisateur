@@ -1,0 +1,127 @@
+package com.example.pfe;
+
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+public class Utilisateur {
+    private String id;
+    private String nom;
+    private String email;
+    private String motDePasse;
+    private String adresse;
+    private String numTel;
+    private String role;  // "etudiant" ou "formateur"
+
+    // Constructeur
+    public Utilisateur(String id, String nom, String email, String motDePasse, String adresse, String numTel, String role) {
+        this.id = id;
+        this.nom = nom;
+        this.email = email;
+        this.motDePasse = motDePasse;
+        this.adresse = adresse;
+        this.numTel = numTel;
+        this.role = role;
+    }
+
+    // Méthode pour enregistrer un utilisateur dans Firebase Realtime Database
+    public void saveToFirebase() {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference ref = database.getReference("utilisateurs");
+
+        // Enregistre l'utilisateur dans la base de données sous son ID
+        ref.child(this.id).setValue(this)
+                .addOnSuccessListener(aVoid -> {
+                    // Succès
+                    System.out.println("Utilisateur ajouté avec succès !");
+                })
+                .addOnFailureListener(e -> {
+                    // Erreur
+                    System.err.println("Erreur d'ajout de l'utilisateur : " + e.getMessage());
+                });
+    }
+
+    // Méthode pour récupérer un utilisateur par ID
+    public static void getById(String userId, final FirebaseCallback callback) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference ref = database.getReference("utilisateurs").child(userId);
+
+        ref.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                Utilisateur utilisateur = task.getResult().getValue(Utilisateur.class);
+                if (utilisateur != null) {
+                    callback.onCallback(utilisateur);
+                } else {
+                    System.out.println("Aucun utilisateur trouvé !");
+                    callback.onCallback(null);
+                }
+            } else {
+                System.err.println("Erreur de récupération de l'utilisateur : " + task.getException().getMessage());
+                callback.onCallback(null);
+            }
+        });
+    }
+
+    // Interface pour la récupération asynchrone des données de Firebase
+    public interface FirebaseCallback {
+        void onCallback(Utilisateur utilisateur);
+    }
+
+    // Getters et setters
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
+
+    public String getNom() {
+        return nom;
+    }
+
+    public void setNom(String nom) {
+        this.nom = nom;
+    }
+
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getMotDePasse() {
+        return motDePasse;
+    }
+
+    public void setMotDePasse(String motDePasse) {
+        this.motDePasse = motDePasse;
+    }
+
+    public String getAdresse() {
+        return adresse;
+    }
+
+    public void setAdresse(String adresse) {
+        this.adresse = adresse;
+    }
+
+    public String getNumTel() {
+        return numTel;
+    }
+
+    public void setNumTel(String numTel) {
+        this.numTel = numTel;
+    }
+
+
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+}
