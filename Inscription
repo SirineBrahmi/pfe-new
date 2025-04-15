@@ -1,0 +1,50 @@
+package com.example.pfe;
+
+public class Inscription {
+    private String idInscription;
+    private String idEtudiant;
+    private String idFormation;
+    private String dateInscription;
+
+    // Constructeur vide (obligatoire pour Firebase)
+    public Inscription() {}
+
+    public Inscription(String idInscription, String idEtudiant, String idFormation, String dateInscription) {
+        this.idInscription = idInscription;
+        this.idEtudiant = idEtudiant;
+        this.idFormation = idFormation;
+        this.dateInscription = dateInscription;
+    }
+
+    public String getIdInscription() {
+        return idInscription;
+    }
+
+    public void setIdInscription(String idInscription) {
+        this.idInscription = idInscription;
+    }
+
+    public String getIdEtudiant() {
+        return idEtudiant;
+    }
+
+    public void setIdEtudiant(String idEtudiant) {
+        this.idEtudiant = idEtudiant;
+    }
+
+    public String getIdFormation() {
+        return idFormation;
+    }
+
+    public void setIdFormation(String idFormation) {
+        this.idFormation = idFormation;
+    }
+
+    public String getDateInscription() {
+        return dateInscription;
+    }
+
+    public void setDateInscription(String dateInscription) {
+        this.dateInscription = dateInscription;
+    }
+}
