@@ -1,0 +1,151 @@
+package com.example.pfe;
+
+import android.os.Bundle;
+import android.text.InputType;
+import android.util.Patterns;
+import android.view.View;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.*;
+
+public class SignupActivity extends AppCompatActivity {
+
+    private EditText etNom, etEmail, etPassword, etConfirmPassword, etAdresse, etNumTel;
+    private Spinner spinnerRole;
+    private Button btnCreerCompte;
+    private FirebaseAuth mAuth;
+    private DatabaseReference usersRef;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_signup);
+
+        mAuth = FirebaseAuth.getInstance();
+        usersRef = FirebaseDatabase.getInstance().getReference("utilisateurs");
+
+        initializeViews();
+        setupSpinners();
+
+        btnCreerCompte.setOnClickListener(v -> {
+            if (validateForm()) {
+                createAccount();
+            }
+        });
+    }
+
+    private void initializeViews() {
+        etNom = findViewById(R.id.et_nom);
+        etEmail = findViewById(R.id.et_email);
+        etPassword = findViewById(R.id.signup_password);
+        etConfirmPassword = findViewById(R.id.signup_confirm_password);
+        etAdresse = findViewById(R.id.et_adresse);
+        etNumTel = findViewById(R.id.et_telephone);
+        spinnerRole = findViewById(R.id.role_spinner);
+        btnCreerCompte = findViewById(R.id.btn_creer_compte);
+
+        // Gestion de l'affichage du mot de passe
+        CheckBox showPasswordCheckbox = findViewById(R.id.show_password_checkbox);
+        showPasswordCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            if (isChecked) {
+                etPassword.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                etConfirmPassword.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+            } else {
+                etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                etConfirmPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+            }
+            // Pour appliquer les changements
+            etPassword.setSelection(etPassword.getText().length());
+            etConfirmPassword.setSelection(etConfirmPassword.getText().length());
+        });
+    }
+
+    private void setupSpinners() {
+        // Adapter pour le rôle
+        ArrayAdapter<CharSequence> roleAdapter = ArrayAdapter.createFromResource(this,
+                R.array.roles_array, android.R.layout.simple_spinner_item);
+        roleAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerRole.setAdapter(roleAdapter);
+    }
+
+    private boolean validateForm() {
+        boolean valid = true;
+
+        if (etNom.getText().toString().trim().isEmpty()) {
+            etNom.setError("Nom requis");
+            valid = false;
+        }
+
+        String email = etEmail.getText().toString().trim();
+        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etEmail.setError("Email valide requis");
+            valid = false;
+        }
+
+        if (etNumTel.getText().toString().trim().isEmpty()) {
+            etNumTel.setError("Téléphone requis");
+            valid = false;
+        }
+
+        if (etAdresse.getText().toString().trim().isEmpty()) {
+            etAdresse.setError("Adresse requise");
+            valid = false;
+        }
+
+
+
+        String password = etPassword.getText().toString().trim();
+        if (password.isEmpty() || password.length() < 6) {
+            etPassword.setError("Mot de passe (min 6 caractères)");
+            valid = false;
+        }
+
+        if (!etConfirmPassword.getText().toString().equals(password)) {
+            etConfirmPassword.setError("Les mots de passe ne correspondent pas");
+            valid = false;
+        }
+
+        return valid;
+    }
+
+    private void createAccount() {
+        String email = etEmail.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
+
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            saveUserData(firebaseUser);
+                        }
+                    } else {
+                        Toast.makeText(SignupActivity.this,
+                                "Erreur d'inscription : " + task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void saveUserData(FirebaseUser firebaseUser) {
+        String id = firebaseUser.getUid();
+        String nom = etNom.getText().toString().trim();
+        String email = firebaseUser.getEmail();
+        String motDePasse = etPassword.getText().toString().trim(); // Note: Storing passwords directly is not recommended
+        String adresse = etAdresse.getText().toString().trim();
+        String numTel = etNumTel.getText().toString().trim();
+        String role = spinnerRole.getSelectedItem().toString();
+
+        Utilisateur utilisateur = new Utilisateur(id, nom, email, motDePasse, adresse, numTel, role);
+
+        usersRef.child(id).setValue(utilisateur)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(SignupActivity.this, "Inscription réussie !", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> Toast.makeText(SignupActivity.this,
+                        "Erreur de sauvegarde : " + e.getMessage(), Toast.LENGTH_SHORT).show());
+    }
+}
