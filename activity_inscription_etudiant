@@ -1,0 +1,105 @@
+package com.example.pfe;
+
+import android.os.Bundle;
+import android.widget.ArrayAdapter;
+import android.widget.Button;
+import android.widget.EditText;
+import android.widget.Spinner;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.*;
+
+import java.text.SimpleDateFormat;
+import java.util.*;
+
+public class activity_inscription_etudiant extends AppCompatActivity {
+
+    private EditText etNiveau;
+    private Spinner spinnerFormation;
+    private Button btnValider;
+
+    private List<String> formationsList = new ArrayList<>();
+    private List<String> formationIds = new ArrayList<>();
+
+    private DatabaseReference formationsRef, etudiantsRef, inscriptionsRef;
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_inscription_etudiant);
+
+        etNiveau = findViewById(R.id.et_Niveau);
+        spinnerFormation = findViewById(R.id.spinnerFormation);
+        btnValider = findViewById(R.id.btn_Valider);
+
+        // Références Firebase
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        formationsRef = database.getReference("formations"); // ← OK en minuscule
+        etudiantsRef = database.getReference("etudiants");
+        inscriptionsRef = database.getReference("inscriptions");
+
+        chargerFormations();
+
+        btnValider.setOnClickListener(v -> {
+            String niveau = etNiveau.getText().toString().trim();
+            int selectedIndex = spinnerFormation.getSelectedItemPosition();
+
+            if (niveau.isEmpty() || selectedIndex == -1) {
+                Toast.makeText(this, "Veuillez remplir tous les champs.", Toast.LENGTH_SHORT).show();
+                return;
+            }
+
+            String idFormation = formationIds.get(selectedIndex);
+            String idEtudiant = FirebaseAuth.getInstance().getCurrentUser().getUid();
+            String dateInscription = new SimpleDateFormat("yyyy-MM-dd", Locale.getDefault()).format(new Date());
+            String idInscription = UUID.randomUUID().toString();
+
+            // Mettre à jour le niveau de l’étudiant
+            etudiantsRef.child(idEtudiant).child("niveau").setValue(niveau);
+
+            // Créer et enregistrer l'inscription
+            Inscription inscription = new Inscription(idInscription, idEtudiant, idFormation, dateInscription);
+            inscriptionsRef.child(idInscription).setValue(inscription)
+                    .addOnSuccessListener(unused -> {
+                        Toast.makeText(this, "Inscription réussie !", Toast.LENGTH_SHORT).show();
+                    })
+                    .addOnFailureListener(e -> {
+                        Toast.makeText(this, "Erreur : " + e.getMessage(), Toast.LENGTH_LONG).show();
+                    });
+        });
+    }
+
+    private void chargerFormations() {
+        formationsRef.addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot snapshot) {
+                formationsList.clear();
+                formationIds.clear();
+
+                for (DataSnapshot data : snapshot.getChildren()) {
+                    String nom = data.child("nom").getValue(String.class); // ← corrigé ici
+                    String id = data.getKey();
+
+                    if (nom != null && id != null) {
+                        formationsList.add(nom);
+                        formationIds.add(id);
+                    }
+                }
+
+                ArrayAdapter<String> adapter = new ArrayAdapter<>(activity_inscription_etudiant.this,
+                        android.R.layout.simple_spinner_item, formationsList);
+                adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                spinnerFormation.setAdapter(adapter);
+            }
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError error) {
+                Toast.makeText(getApplicationContext(), "Erreur de chargement !", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+}
