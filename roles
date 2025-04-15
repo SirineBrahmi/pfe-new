@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tableau des rôles -->
+    <string-array name="roles_array">
+        <item>etudiant</item>
+        <item>formateur</item>
+        <item>admin</item>
+    </string-array>
+
+    <!-- Tableau des formations -->
+    <string-array name="formations_array">
+        <item>BTS</item>
+        <item>BTP</item>
+        <item>BTSCF</item>
+    </string-array>
+</resources>
