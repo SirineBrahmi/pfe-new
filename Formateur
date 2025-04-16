@@ -1,0 +1,90 @@
+package com.example.pfe;
+
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+
+// Classe Formateur (Hérite de Utilisateur)
+public class Formateur extends Utilisateur {
+    private String domaineExpertise;  // Domaine d'expertise (ex: Informatique, Mathématiques)
+    private int experience;  // Nombre d'années d'expérience
+    private String diplome;  // Diplôme du formateur
+
+    // Constructeur
+    public Formateur(String id, String nom, String email, String motDePasse, String adresse, String numTel,String role, String domaineExpertise, int experience, String diplome) {
+        super(id, nom, email, motDePasse, adresse, numTel, role);
+        this.domaineExpertise = domaineExpertise;
+        this.experience = experience;
+        this.diplome = diplome;
+    }
+
+    // Méthode pour enregistrer un formateur dans Firebase Realtime Database
+    @Override
+    public void saveToFirebase() {
+        super.saveToFirebase();  // Appelle la méthode de la classe parente (Utilisateur)
+
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference ref = database.getReference("formateurs");
+
+        // Enregistre le formateur dans la base de données sous son ID
+        ref.child(this.getId()).setValue(this)
+                .addOnSuccessListener(aVoid -> {
+                    // Succès
+                    System.out.println("Formateur ajouté avec succès !");
+                })
+                .addOnFailureListener(e -> {
+                    // Erreur
+                    System.err.println("Erreur d'ajout du formateur : " + e.getMessage());
+                });
+    }
+
+    // Méthode pour récupérer un formateur par ID
+    public static void getById(String formateurId, final FirebaseCallback callback) {
+        FirebaseDatabase database = FirebaseDatabase.getInstance();
+        DatabaseReference ref = database.getReference("formateurs").child(formateurId);
+
+        ref.get().addOnCompleteListener(task -> {
+            if (task.isSuccessful() && task.getResult() != null) {
+                Formateur formateur = task.getResult().getValue(Formateur.class);
+                if (formateur != null) {
+                    callback.onCallback(formateur);
+                } else {
+                    System.out.println("Aucun formateur trouvé !");
+                    callback.onCallback(null);
+                }
+            } else {
+                System.err.println("Erreur de récupération du formateur : " + task.getException().getMessage());
+                callback.onCallback(null);
+            }
+        });
+    }
+
+    // Interface pour la récupération asynchrone des données de Firebase
+    public interface FirebaseCallback {
+        void onCallback(Formateur formateur);
+    }
+
+    // Getters et setters pour les attributs spécifiques au formateur
+    public String getDomaineExpertise() {
+        return domaineExpertise;
+    }
+
+    public void setDomaineExpertise(String domaineExpertise) {
+        this.domaineExpertise = domaineExpertise;
+    }
+
+    public int getExperience() {
+        return experience;
+    }
+
+    public void setExperience(int experience) {
+        this.experience = experience;
+    }
+
+    public String getDiplome() {
+        return diplome;
+    }
+
+    public void setDiplome(String diplome) {
+        this.diplome = diplome;
+    }
+}
