@@ -1,211 +1,240 @@
 package com.example.pfe;
 
-import androidx.annotation.NonNull;
-import androidx.appcompat.app.AppCompatActivity;
-import android.content.Intent;
 import android.os.Bundle;
+import android.text.InputType;
 import android.util.Patterns;
-import android.text.method.HideReturnsTransformationMethod;
-import android.text.method.PasswordTransformationMethod;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.Spinner;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.google.firebase.database.DataSnapshot;
-import com.google.firebase.database.DatabaseError;
+import android.view.View;
+import android.widget.*;
+import androidx.appcompat.app.AppCompatActivity;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.auth.FirebaseUser;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
-import com.google.firebase.database.ValueEventListener;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
 
 public class SignupActivity extends AppCompatActivity {
 
-    private EditText signupName, signupUsername, signupEmail, signupPassword, signupConfirmPassword;
+    private EditText etNom, etEmail, etPassword, etConfirmPassword, etAdresse, etNumTel;
+    private Spinner spinnerRole, spinnerDynamic;
+    private Button btnCreerCompte;
+    private LinearLayout dynamicSpinnerContainer;
+    private String selectedNiveau = "";
+    private String selectedSpecialite = "";
+    private FirebaseAuth mAuth;
     private DatabaseReference usersRef;
-    private SessionManager sessionManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_signup);
 
-        // Initialisation
-        sessionManager = new SessionManager(this);
-        usersRef = FirebaseDatabase.getInstance().getReference("users");
+        mAuth = FirebaseAuth.getInstance();
+        usersRef = FirebaseDatabase.getInstance().getReference("utilisateurs");
 
-        // Liaison des vues
-        signupName = findViewById(R.id.signup_name);
-        signupUsername = findViewById(R.id.signup_username);
-        signupEmail = findViewById(R.id.signup_email);
-        signupPassword = findViewById(R.id.signup_password);
-        signupConfirmPassword = findViewById(R.id.signup_confirm_password);
-        Spinner signupRoleSpinner = findViewById(R.id.role_spinner);
-        Button signupButton = findViewById(R.id.signup_button);
-        TextView loginRedirectText = findViewById(R.id.loginRedirectText);
+        initializeViews();
+        setupRoleSpinner();
+
+        btnCreerCompte.setOnClickListener(v -> {
+            if (validateForm()) {
+                createAccount();
+            }
+        });
+    }
+
+    private void initializeViews() {
+        etNom = findViewById(R.id.et_nom);
+        etEmail = findViewById(R.id.et_email);
+        etPassword = findViewById(R.id.signup_password);
+        etConfirmPassword = findViewById(R.id.signup_confirm_password);
+        etAdresse = findViewById(R.id.et_adresse);
+        etNumTel = findViewById(R.id.et_telephone);
+        spinnerRole = findViewById(R.id.role_spinner);
+        btnCreerCompte = findViewById(R.id.btn_creer_compte);
+        dynamicSpinnerContainer = findViewById(R.id.dynamic_spinner_container);
+
+        // Création du spinner dynamique
+        spinnerDynamic = new Spinner(this);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        params.setMargins(0, 16, 0, 0);
+        spinnerDynamic.setLayoutParams(params);
+        dynamicSpinnerContainer.addView(spinnerDynamic);
+        dynamicSpinnerContainer.setVisibility(View.GONE);
+
+        // Checkbox pour afficher le mot de passe
         CheckBox showPasswordCheckbox = findViewById(R.id.show_password_checkbox);
-
-        // Configuration du spinner des rôles
-        String[] roles = {"etudiant", "formateur", "admin"};
-        ArrayAdapter<String> adapter = new ArrayAdapter<>(this,
-                android.R.layout.simple_spinner_item, roles);
-        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-        signupRoleSpinner.setAdapter(adapter);
-
-        // Gestion affichage mot de passe
         showPasswordCheckbox.setOnCheckedChangeListener((buttonView, isChecked) -> {
             if (isChecked) {
-                signupPassword.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
-                signupConfirmPassword.setTransformationMethod(HideReturnsTransformationMethod.getInstance());
+                etPassword.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
+                etConfirmPassword.setInputType(InputType.TYPE_TEXT_VARIATION_VISIBLE_PASSWORD);
             } else {
-                signupPassword.setTransformationMethod(PasswordTransformationMethod.getInstance());
-                signupConfirmPassword.setTransformationMethod(PasswordTransformationMethod.getInstance());
+                etPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
+                etConfirmPassword.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
             }
-            signupPassword.setSelection(signupPassword.getText().length());
-            signupConfirmPassword.setSelection(signupConfirmPassword.getText().length());
+            etPassword.setSelection(etPassword.getText().length());
+            etConfirmPassword.setSelection(etConfirmPassword.getText().length());
         });
-
-        // Bouton d'inscription
-        signupButton.setOnClickListener(v -> registerUser(signupRoleSpinner.getSelectedItem().toString()));
-
-        // Lien vers login
-        loginRedirectText.setOnClickListener(v ->
-                startActivity(new Intent(SignupActivity.this, LoginActivity.class)));
     }
 
-    private void registerUser(String role) {
-        // Récupération des valeurs
-        String name = signupName.getText().toString().trim();
-        String username = signupUsername.getText().toString().trim();
-        String email = signupEmail.getText().toString().trim();
-        String password = signupPassword.getText().toString().trim();
-        String confirmPassword = signupConfirmPassword.getText().toString().trim();
+    private void setupRoleSpinner() {
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.roles_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerRole.setAdapter(adapter);
 
-        // Validation
-        if (!validateInputs(name, username, email, password, confirmPassword)) {
-            Toast.makeText(this, "Veuillez corriger les erreurs ci-dessus", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // Vérifier si le username existe déjà
-        usersRef.orderByChild("username").equalTo(username).addListenerForSingleValueEvent(new ValueEventListener() {
+        spinnerRole.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
-            public void onDataChange(@NonNull DataSnapshot snapshot) {
-                if (snapshot.exists()) {
-                    signupUsername.setError("Ce nom d'utilisateur est déjà pris");
-                    return;
-                }
-
-                // Hachage du mot de passe
-                String hashedPassword = hashPassword(password);
-
-                // Créer l'utilisateur
-                String id = usersRef.push().getKey();
-                User user = new User(id, username, name, email, hashedPassword, role);
-
-                // Enregistrement dans Firebase
-                usersRef.child(id).setValue(user)
-                        .addOnSuccessListener(aVoid -> {
-                            // Sauvegarde session et redirection
-                            sessionManager.setLogin(true);
-                            sessionManager.setUserId(id);
-                            sessionManager.setUsername(username);
-                            sessionManager.setRole(role);
-
-                            redirectUser(role);
-                        })
-                        .addOnFailureListener(e ->
-                                Toast.makeText(SignupActivity.this, "Erreur d'inscription", Toast.LENGTH_SHORT).show());
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String role = parent.getItemAtPosition(position).toString();
+                updateDynamicSpinner(role);
             }
 
             @Override
-            public void onCancelled(@NonNull DatabaseError error) {
-                Toast.makeText(SignupActivity.this, "Erreur de base de données", Toast.LENGTH_SHORT).show();
+            public void onNothingSelected(AdapterView<?> parent) {
+                dynamicSpinnerContainer.setVisibility(View.GONE);
             }
         });
     }
 
-    private boolean validateInputs(String name, String username, String email,
-                                   String password, String confirmPassword) {
-        boolean isValid = true;
-
-        if (name.isEmpty()) {
-            signupName.setError("Nom complet requis");
-            isValid = false;
+    private void updateDynamicSpinner(String role) {
+        if (role.equalsIgnoreCase("Étudiant")) {
+            setupNiveauSpinner();
+            dynamicSpinnerContainer.setVisibility(View.VISIBLE);
+        } else if (role.equalsIgnoreCase("Formateur")) {
+            setupSpecialiteSpinner();
+            dynamicSpinnerContainer.setVisibility(View.VISIBLE);
+        } else {
+            dynamicSpinnerContainer.setVisibility(View.GONE);
         }
-
-        if (username.isEmpty()) {
-            signupUsername.setError("Nom d'utilisateur requis");
-            isValid = false;
-        }
-
-        if (email.isEmpty()) {
-            signupEmail.setError("Email requis");
-            isValid = false;
-        } else if (!Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
-            signupEmail.setError("Email invalide");
-            isValid = false;
-        }
-
-        if (password.isEmpty()) {
-            signupPassword.setError("Mot de passe requis");
-            isValid = false;
-        } else if (password.length() < 6) {
-            signupPassword.setError("6 caractères minimum");
-            isValid = false;
-        }
-
-        if (confirmPassword.isEmpty()) {
-            signupConfirmPassword.setError("Confirmation requise");
-            isValid = false;
-        } else if (!password.equals(confirmPassword)) {
-            signupConfirmPassword.setError("Les mots de passe ne correspondent pas");
-            isValid = false;
-        }
-
-        return isValid;
     }
 
-    private void redirectUser(String role) {
-        Intent intent;
-        switch (role) {
-            case "admin":
-                intent = new Intent(this, AdminActivity.class);
-                break;
-            case "formateur":
-                intent = new Intent(this, ClassRoomFormateur.class);
-                break;
-            case "etudiant":
-            default:
-                intent = new Intent(this, EtudiantActivity.class);
-                break;
-        }
+    private void setupNiveauSpinner() {
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.niveau_etudiant_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerDynamic.setAdapter(adapter);
 
-        Toast.makeText(this, "Inscription réussie!", Toast.LENGTH_SHORT).show();
-        startActivity(intent);
-        finish();
-    }
-
-    // 🔐 Fonction pour hasher le mot de passe
-    private String hashPassword(String password) {
-        try {
-            MessageDigest digest = MessageDigest.getInstance("SHA-256");
-            byte[] hashBytes = digest.digest(password.getBytes());
-            StringBuilder hexString = new StringBuilder();
-            for (byte b : hashBytes) {
-                String hex = Integer.toHexString(0xff & b);
-                if (hex.length() == 1) hexString.append('0');
-                hexString.append(hex);
+        spinnerDynamic.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedNiveau = parent.getItemAtPosition(position).toString();
+                selectedSpecialite = "";
             }
-            return hexString.toString();
-        } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
-            return null;
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    private void setupSpecialiteSpinner() {
+        ArrayAdapter<CharSequence> adapter = ArrayAdapter.createFromResource(this,
+                R.array.specialite_formateur_array, android.R.layout.simple_spinner_item);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinnerDynamic.setAdapter(adapter);
+
+        spinnerDynamic.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                selectedSpecialite = parent.getItemAtPosition(position).toString();
+                selectedNiveau = "";
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {}
+        });
+    }
+
+    private boolean validateForm() {
+        boolean valid = true;
+
+        if (etNom.getText().toString().trim().isEmpty()) {
+            etNom.setError("Nom requis");
+            valid = false;
         }
+
+        String email = etEmail.getText().toString().trim();
+        if (email.isEmpty() || !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+            etEmail.setError("Email valide requis");
+            valid = false;
+        }
+
+        if (etNumTel.getText().toString().trim().isEmpty()) {
+            etNumTel.setError("Téléphone requis");
+            valid = false;
+        }
+
+        if (etAdresse.getText().toString().trim().isEmpty()) {
+            etAdresse.setError("Adresse requise");
+            valid = false;
+        }
+
+        String password = etPassword.getText().toString().trim();
+        if (password.isEmpty() || password.length() < 6) {
+            etPassword.setError("Mot de passe (min 6 caractères)");
+            valid = false;
+        }
+
+        if (!etConfirmPassword.getText().toString().equals(password)) {
+            etConfirmPassword.setError("Les mots de passe ne correspondent pas");
+            valid = false;
+        }
+
+        String role = spinnerRole.getSelectedItem().toString();
+        if (role.equalsIgnoreCase("Étudiant") && selectedNiveau.isEmpty()) {
+            Toast.makeText(this, "Veuillez sélectionner un niveau", Toast.LENGTH_SHORT).show();
+            valid = false;
+        } else if (role.equalsIgnoreCase("Formateur") && selectedSpecialite.isEmpty()) {
+            Toast.makeText(this, "Veuillez sélectionner une spécialité", Toast.LENGTH_SHORT).show();
+            valid = false;
+        }
+
+        return valid;
+    }
+
+    private void createAccount() {
+        String email = etEmail.getText().toString().trim();
+        String password = etPassword.getText().toString().trim();
+
+        mAuth.createUserWithEmailAndPassword(email, password)
+                .addOnCompleteListener(this, task -> {
+                    if (task.isSuccessful()) {
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            saveUserData(firebaseUser);
+                        }
+                    } else {
+                        Toast.makeText(SignupActivity.this,
+                                "Erreur d'inscription: " + task.getException().getMessage(),
+                                Toast.LENGTH_SHORT).show();
+                    }
+                });
+    }
+
+    private void saveUserData(FirebaseUser firebaseUser) {
+        String id = firebaseUser.getUid();
+        String nom = etNom.getText().toString().trim();
+        String email = firebaseUser.getEmail();
+        String motDePasse = etPassword.getText().toString().trim();
+        String adresse = etAdresse.getText().toString().trim();
+        String numTel = etNumTel.getText().toString().trim();
+        String role = spinnerRole.getSelectedItem().toString().toLowerCase();
+
+        Utilisateur utilisateur = new Utilisateur(id, nom, email, motDePasse, adresse, numTel, role, selectedNiveau, selectedSpecialite);
+
+        if (role.equalsIgnoreCase("étudiant") || role.equalsIgnoreCase("etudiant")) {
+            String idFormation = "FORMATION_001";
+            Inscription inscription = new Inscription(id, idFormation);
+            inscription.enregistrer();
+        }
+
+        usersRef.child(role).child(id).setValue(utilisateur)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(SignupActivity.this, "✅ Inscription réussie", Toast.LENGTH_SHORT).show();
+                    finish();
+                })
+                .addOnFailureListener(e -> Toast.makeText(SignupActivity.this,
+                        "❌ Erreur: " + e.getMessage(), Toast.LENGTH_SHORT).show());
     }
 }
