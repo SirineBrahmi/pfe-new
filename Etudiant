@@ -1,0 +1,15 @@
+package com.example.pfe;
+
+public class Etudiant extends Utilisateur {
+    private String niveau;
+
+
+
+    public Etudiant(String id, String nom, String email, String motDePasse, String adresse, String numTel, String role, String niveau) {
+        super(id, nom, email, motDePasse, adresse, numTel, role);
+        this.niveau = niveau;
+    }
+
+    public String getNiveau() { return niveau; }
+    public void setNiveau(String niveau) { this.niveau = niveau; }
+}
